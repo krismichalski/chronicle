@@ -45,6 +45,14 @@ Mostly unfinished and untested.
       - [Demodulation](Ruby/Basic%20Data%20Transmission/Demodulation)
       - [Hamming Error Correction](Ruby/Basic%20Data%20Transmission/Hamming%20Error%20Correction)
 
+## Open Source contributions
+  - kontena/kontena
+    - [Fix deploying registry on azure](https://github.com/kontena/kontena/pull/863)
+  - cerebris/jsonapi-resources
+    - [Use strings in whitelist to avoid mismatch of object_id](https://github.com/cerebris/jsonapi-resources/pull/797)
+  - denysdovhan/spaceship-zsh-theme
+    - [Add vi-mode prompt info](https://github.com/denysdovhan/spaceship-zsh-theme/pull/32)
+
 ## TODO:
   - Add README to all of the projects
   - Add NodeJS
