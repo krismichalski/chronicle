@@ -1,0 +1,13 @@
+.container
+  .row
+    .main
+      %h3
+        = L::posts_preview_preview_post
+      %hr
+      - if(view()->avaiable)
+        %h2
+          = view()->post['title']
+        .well
+          = view()->post['content']
+      - else
+        = L::posts_preview_no_in_this_language

@@ -1,0 +1,32 @@
+.container
+  .row
+    .main
+      - if(empty(view()->users))
+        %h3
+          = L::users_index_no_users
+      - else
+        %h3
+          = L::users_index_users_database
+        %table.table.table-responsive.table-condensed.table-striped
+          %thead
+            %th.col-sm-2 #
+            %th.col-sm-4
+              = L::users_index_user_email
+            %th.col-sm-2
+              = L::users_index_user_role
+            %th.col-sm-4
+              = L::users_index_actions
+          %tbody
+            - foreach(view()->users as $user)
+              %tr
+                %td #{$user['user_id']}
+                %td #{$user['email']}
+                %td #{$user['role']}
+                %td
+                  - if($user['approved_at'] == null || time() <= $user['approved_at'])
+                    %a.btn.btn-info(href = "/users/approve?user_id=#{$user['user_id']}")
+                      = L::users_index_approve
+                  %a.btn.btn-info(href = "/users/edit?user_id=#{$user['user_id']}")
+                    = L::users_index_edit
+                  %a.btn.btn-danger.confirm_alert(href = "/users/delete?user_id=#{$user['user_id']}")
+                    = L::users_index_delete

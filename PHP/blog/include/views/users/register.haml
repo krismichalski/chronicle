@@ -1,0 +1,11 @@
+.container
+  .row
+    .main
+      %h3
+        = L::users_register_create_account
+      %form(role = "form" action = "/users/create" method = "POST")
+        - echo form_input('email', 'Email')
+        - echo form_input('password', L::users_register_password, 'password')
+        - echo form_input('password_confirm', L::users_register_password_confirm, 'password')
+        %button.btn.btn.btn-primary(type = "submit")
+          = L::users_register_create_account_button

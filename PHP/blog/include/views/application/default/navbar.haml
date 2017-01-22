@@ -1,0 +1,36 @@
+    .navbar.navbar-inverse.navbar-fixed-top
+      .container
+        .navbar-header
+          %button.navbar-toggle(data-target = ".navbar-collapse" data-toggle = "collapse" type = "button")
+            %span.icon-bar
+            %span.icon-bar
+            %span.icon-bar
+          %a.navbar-brand(href = url_for('pages/index')) Blog
+        .navbar-collapse.collapse
+          %ul.nav.navbar-nav
+            - if(current_user()['role'] == 'admin')
+              - navbar_link('users/index', L::default_navbar_users_index)
+            - elseif(current_user()['role'] == 'blogger')
+              - navbar_link('posts/manage', L::default_navbar_posts_manage)
+          - if(current_user())
+            %p.navbar-text.pull-right
+              = L::default_navbar_logged_as
+              = current_user()['email']
+              = ' | '
+              %a.navbar-link(href = "/sessions/logout")
+                = L::default_navbar_logout
+          - else
+            .navbar-right
+              %form.navbar-form.pull-left(action = "/sessions/login" method = "POST" style = "padding-right: 0")
+                .form-group
+                  %input.form-control(placeholder = "Email" type = "text" name = "email")/
+                .form-group
+                  %input.form-control(placeholder = L::default_navbar_password type = "password" name = "password")/
+                %button.btn.btn-success(type = "submit")
+                  = L::default_navbar_login
+              %p.navbar-text
+                = L::default_navbar_either
+              %a(href = "/users/register")
+                %button.btn.btn-info.navbar-btn
+                  = L::default_navbar_create_account
+    - flash_message()

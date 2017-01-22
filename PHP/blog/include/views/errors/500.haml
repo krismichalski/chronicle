@@ -1,0 +1,6 @@
+    .container
+      .row
+        .col-lg-12
+          %h2
+            = L::errors_500_error
+          - echo display_error($_POST['error_number'], $_POST['error_message'], $_POST['error_file'], $_POST['error_line'])

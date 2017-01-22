@@ -1,0 +1,13 @@
+.container
+  .row
+    .main
+      %h3
+        = L::users_edit_edit_user
+      %form(role = "form" action = "/users/update" method = "POST")
+        - echo form_input('user_id', 'id', 'hidden', view()->user['user_id'])
+        - echo form_input('email', L::users_index_user_email, 'email', view()->user['email'])
+        - echo form_input('password', L::users_register_password, 'password')
+        - echo form_input('password_confirm', L::users_register_password_confirm, 'password')
+        - echo form_input('current_password', L::users_edit_current_password, 'password')
+        %button.btn.btn.btn-primary(type = "submit")
+          = L::users_index_edit

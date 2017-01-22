@@ -1,0 +1,30 @@
+.container
+  .row
+    .main
+      %h3
+        = L::posts_new_new_post
+      %hr
+      %form(role = "form" action = "/posts/create" method = "POST")
+        .form-group
+          %label(for = 'content_language')
+            = L::posts_new_content_language
+          %label.radio-inline
+            %input(type = 'radio' name = 'content_language' value = 'en')
+              en
+          %label.radio-inline
+            %input(type = 'radio' name = 'content_language' value = 'pl')
+              pl
+        %label(for = 'category')
+          = L::posts_new_post_category
+        %select.form-control(name = 'category')
+          %option(value = '')
+          - foreach(view()->categories as $category)
+            %option(value = $category)
+              = $category
+        - echo form_input('title', L::posts_new_post_title)
+        .form-group
+          %label(for = 'content')
+            = L::posts_new_post_content
+          %textarea.form-control(rows = 3 name = 'content')
+        %button.btn.btn.btn-primary(type = "submit")
+          = L::posts_new_create_post

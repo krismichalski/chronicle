@@ -1,0 +1,42 @@
+.container
+  .row
+    .main
+      - if(empty(view()->posts))
+        %h3
+          = L::posts_manage_no_posts
+      - else
+        %h3
+          = L::posts_manage_your_posts
+        %table.table.table-responsive.table-condensed.table-striped
+          %thead
+            %th.col-sm-2 #
+            %th.col-sm-2
+              = L::posts_manage_post_title
+            %th.col-sm-2
+              = L::posts_manage_post_category
+            %th.col-sm-2
+              = L::posts_manage_post_languages
+            %th.col-sm-4
+              = L::posts_manage_actions
+          %tbody
+            - foreach(view()->posts as $post)
+              %tr
+                %td #{$post['post_id']}
+                %td #{$post['title']}
+                %td #{$post['category']}
+                %td #{$post['title']}
+                %td
+                  %a.btn.btn-info(href = "/posts/preview?post_id=#{$post['post_id']}")
+                    = L::posts_manage_preview
+                  - if($post['hidden'])
+                    %a.btn.btn-info(href = "/posts/unhide?post_id=#{$post['post_id']}")
+                      = L::posts_manage_unhide
+                  - else
+                    %a.btn.btn-info(href = "/posts/hide?post_id=#{$post['post_id']}")
+                      = L::posts_manage_hide
+                  %a.btn.btn-info(href = "/posts/edit?post_id=#{$post['post_id']}")
+                    = L::posts_manage_edit
+                  %a.btn.btn-danger.confirm_alert(href = "/posts/delete?post_id=#{$post['post_id']}")
+                    = L::posts_manage_delete
+      %a.btn.btn-primary(href = '/posts/new_post')
+        = L::posts_new_new_post
