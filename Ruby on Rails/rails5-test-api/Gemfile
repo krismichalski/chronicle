@@ -1,0 +1,70 @@
+source 'https://rubygems.org'
+
+# Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
+gem 'rails', '~> 5.0.0'
+
+# Use postgresql as the database for Active Record
+gem 'pg', '~> 0.18'
+
+# Use Puma as the app server
+gem 'puma', '~> 3.0'
+
+# Apply several headers that are related to security
+gem 'secure_headers', '~> 3.4.0'
+
+# Protect from abusive requests with cache in redis
+gem 'rack-attack', '~> 4.4.1'
+gem 'redis-rails', '~> 5.0.1'
+
+# Protection against typical web attacks
+gem 'rack-protection', '~> 1.5.3'
+
+# Handling Cross-Origin Resource Sharing, making cross-origin AJAX possible
+gem 'rack-cors', require: 'rack/cors'
+
+# Authentication
+gem 'devise', '~> 4.2.0'
+
+# OAuth 2 provider
+gem 'doorkeeper', '~> 4.0.0'
+
+# Authorization
+gem 'pundit', '~> 1.1.0'
+
+# Roles
+gem 'rolify', '~> 5.1.0'
+
+group :development, :test do
+  # Call 'byebug' anywhere in the code to stop execution and get a debugger console
+  gem 'byebug', '~> 9.0.5', platform: :mri
+  gem 'pry-byebug', '~> 3.4.0'
+
+  # RSpec
+  gem 'rspec-rails', '~> 3.5.1'
+
+  # Test helpers
+  gem 'factory_girl_rails', '~> 4.7.0'
+  gem 'faker', '~> 1.6.5'
+  gem 'database_rewinder', '~> 0.6.4'
+  gem 'json_spec', '~> 1.1.4'
+
+  # Test coverage
+  gem 'simplecov', '~> 0.12.0', require: false
+
+  # Security tests
+  gem 'brakeman', '~> 3.3.3'
+
+  # Guard to automatically run tests and bundle
+  gem 'guard-rspec', '~> 4.7.2'
+  gem 'guard-bundler', '~> 2.1.0', require: false
+  gem 'guard-brakeman', '~> 0.8.3'
+  gem 'guard-rubocop', '~> 1.2.0'
+
+  # Detect N+1 queries
+  gem 'bullet', '~> 5.1.1'
+end
+
+group :production do
+  gem 'lograge', '~> 0.4.1'
+  gem 'logstash-event', '~> 1.2.02'
+end

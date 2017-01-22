@@ -1,0 +1,17 @@
+AllCops:
+  Exclude:
+    - 'vendor/**/*'
+    - 'db/**/*'
+
+Metrics/LineLength:
+  Max: 120
+StringLiterals:
+  Enabled: false
+Documentation:
+  Enabled: false
+
+Style/SymbolProc:
+  IgnoredMethods:
+    - respond_to
+    - define_method
+    - throttle
