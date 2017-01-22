@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Hello World</string>
+
+    <string name="goto_flight_search">Flight search</string>
+    <string name="goto_contacts">Contacts</string>
+
+    <string name="from_where">From where?</string>
+    <string name="where_to">Where to?</string>
+    <string name="pick_date">Pick Date</string>
+    <string name="when_start">From Date </string>
+    <string name="when_end">To Date </string>
+    <string name="one_way">One way?</string>
+    <string name="number_of_adults">Number of adults:</string>
+    <string name="number_of_kids">Number of kids:</string>
+    <string name="search">Search</string>
+
+    <string name="contact_copied">Contact copied!</string>
+</resources>
