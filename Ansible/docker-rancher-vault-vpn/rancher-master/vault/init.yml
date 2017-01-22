@@ -1,0 +1,39 @@
+---
+
+- name: Create init_vault.sh from template
+  local_action: template src=templates/init_vault.j2 dest=files/init_vault.sh
+
+- name: Run init_vault.sh
+  script: files/init_vault.sh
+  args:
+    creates: /home/{{ main_user }}/.vault_keys.yml.enc
+
+- name: Initialize vault and save keys
+  shell: /bin/bash /home/{{ main_user }}/init_vault.sh
+  args:
+    creates: /home/{{ main_user }}/.vault_keys.yml.enc
+
+- name: Remove init_vault.sh
+  local_action: file path=files/init_vault.sh state=absent
+
+- name: Get status of vault_keys.yml.enc file
+  stat: path=/home/{{ main_user }}/.vault_keys.yml.enc
+  register: vks
+
+- name: Download vault_keys.yml.enc
+  fetch: src=/home/{{ main_user }}/.vault_keys.yml.enc dest=files/vault_keys.yml.enc flat=yes
+  when: "'{{ vks.stat.md5 }}' != '0fdc7c2e9671b371fb43738a74bdc677'"
+
+- name: Remove content of vault_keys.yml
+  shell: echo 'DO NOT REMOVE' > /home/{{ main_user }}/.vault_keys.yml.enc && touch /home/{{ main_user }}/.vault_keys_created
+  args:
+    creates: /home/{{ main_user }}/.vault_keys_created
+
+- name: Get vault root token
+  shell: echo {{ vault_password_to_vault_keys_file }} | openssl enc -in files/vault_keys.yml.enc -pass stdin -aes-256-cbc -d | tail -1  | awk '{ print $2; }'
+  register: vault_root_token
+  delegate_to: localhost
+
+- name: Create alias for vault
+  lineinfile: dest=/home/{{ main_user }}/.bashrc state=present line='function vault { sudo docker exec -it vault /bin/sh -c "vault auth {{ vault_root_token.stdout }} &> /dev/null; vault $*"; }' regexp='^function vault'
+  register: vault_alias

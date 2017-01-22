@@ -1,0 +1,8 @@
+Name = {{ ansible_hostname | regex_replace('-', '_') }}
+Device = /dev/net/tun
+{% for host in play_hosts %}
+{% if host != ansible_hostname %}
+ConnectTo = {{ host | regex_replace('-', '_') }}
+{% endif %}
+{% endfor %}
+Port = {{ tinc_port }}

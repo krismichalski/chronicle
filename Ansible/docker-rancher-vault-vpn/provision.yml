@@ -1,0 +1,162 @@
+---
+- hosts: all
+  become: yes
+
+  roles:
+    - holms.fqdn
+    - role: angstwad.docker_ubuntu
+      install_kernel_extras: true
+      docker_opts: >
+        --storage-driver=overlay
+        --dns 8.8.8.8
+        --dns 8.8.4.4
+      pip_version_docker_py: 1.9
+    - role: tinc
+      tinc_netname: "{{ network_name }}"
+      tinc_subnet: "{{ network_subnet }}"
+
+  tasks:
+    - name: Set locale
+      lineinfile: dest=/home/{{ main_user }}/.bashrc state=present line='export LC_ALL=en_US.UTF-8' regexp='^export LC_ALL'
+
+    - name: Update APT package cache
+      apt: update_cache=yes cache_valid_time=3600
+
+    - name: Install required packages
+      apt: state=installed pkg={{ item }}
+      with_items:
+        - aptitude
+        - ufw
+        - fail2ban
+        - unattended-upgrades
+        - logwatch
+
+    - name: Upgrade APT to the latest packages
+      apt: upgrade=safe
+
+    - name: Install optional packages
+      apt: state=installed pkg={{ item }}
+      with_items:
+        - vim
+        - gawk
+        - bash
+        - curl
+        - dnsutils
+
+    - name: Adjust APT update intervals
+      copy: src=files/apt_periodic dest=/etc/apt/apt.conf.d/10periodic
+
+    - name: Setup ufw
+      ufw: state=enabled policy=deny
+
+    - name: Allow ssh traffic
+      ufw: rule=allow port=22 proto=tcp
+
+    - name: Allow http traffic
+      ufw: rule=allow port=80 proto=tcp
+      when: "'db' not in group_names"
+
+    - name: Allow https traffic
+      ufw: rule=allow port=443 proto=tcp
+      when: "'db' not in group_names"
+
+    - name: Allow ipsec-500 traffic
+      ufw: rule=allow port=500 proto=udp
+
+    - name: Allow ipsec-4500 traffic
+      ufw: rule=allow port=4500 proto=udp
+
+    - name: Allow tinc tcp traffic
+      ufw: rule=allow port=655 proto=tcp
+
+    - name: Allow tinc udp traffic
+      ufw: rule=allow port=655 proto=udp
+
+    - name: Allow all access from RFC1918 networks
+      ufw: rule=allow src={{ item }}
+      with_items:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+
+    - name: Set up Postfix to relay mail
+      debconf: name=postfix
+               question='{{ item.question }}'
+               value='{{ item.value }}'
+               vtype='{{ item.vtype }}'
+      with_items:
+        - { question: 'postfix/mailname', value: '{{ ansible_fqdn }}', vtype: 'string' }
+        - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'string' }
+
+    - name: Email log summary daily
+      lineinfile: dest=/etc/cron.daily/00logwatch
+                  regexp="^/usr/sbin/logwatch"
+                  line="/usr/sbin/logwatch --output mail --mailto servers+{{ inventory_hostname }}@example.com --detail high"
+                  state=present create=yes
+
+    - name: Change ssh port
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^Port\s"
+                  line="Port 22"
+                  state=present
+      notify: Restart ssh
+
+    - name: Disallow password authentication
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PasswordAuthentication"
+                  line="PasswordAuthentication no"
+                  state=present
+      notify: Restart ssh
+
+    - name: Disallow root SSH access
+      lineinfile: dest=/etc/ssh/sshd_config
+                  regexp="^PermitRootLogin"
+                  line="PermitRootLogin no"
+                  state=present
+      notify: Restart ssh
+
+    - name: Prepare staging keys
+      set_fact:
+        staging_keys: "{{ staging_keys | default('') ~ lookup('file', item) ~ '\n' }}"
+      with_fileglob:
+        - files/staging_keys/*
+
+    - name: Prepare production keys
+      set_fact:
+        production_keys: "{{ production_keys | default('') + lookup('file', item) }}"
+      with_fileglob:
+        - files/production_keys/*
+
+    - name: Add staging keys
+      authorized_key: user={{ main_user }} key="{{ staging_keys }}" exclusive=yes
+      when: "'staging' in group_names"
+
+    - name: Add production keys
+      authorized_key: user={{ main_user }} key="{{ production_keys }}" exclusive=yes
+      when: "'production' in group_names"
+
+    - name: Run tinc in docker
+      become: yes
+      docker_service:
+        state: present
+        recreate: always
+        project_name: vpn
+        definition:
+          version: "2"
+          services:
+            tinc:
+              image: jenserat/tinc:latest
+              container_name: tinc
+              restart: always
+              command: start -D
+              volumes:
+                - "/etc/tinc/{{ network_name }}:/etc/tinc"
+              network_mode: host
+              devices:
+                - "/dev/net/tun"
+              cap_add:
+                - NET_ADMIN
+
+  handlers:
+    - name: Restart ssh
+      service: name=ssh state=restarted

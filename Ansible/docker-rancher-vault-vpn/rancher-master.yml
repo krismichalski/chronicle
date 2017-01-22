@@ -1,0 +1,11 @@
+---
+- hosts: rancher-master
+
+  tasks:
+    - include: rancher-master/dns.yml
+    - include: rancher-master/docker.yml
+    - include: rancher-master/vault/init.yml
+    - include: rancher-master/rancher.yml
+    - include: rancher-master/vault/values.yml
+      become: yes
+      no_log: True

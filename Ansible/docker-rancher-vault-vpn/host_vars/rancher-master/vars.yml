@@ -1,0 +1,21 @@
+---
+rancher_master_server: { subdomain: rancher, domain: example.com }
+registry_server: { subdomain: hub, domain: example.com }
+auth_server: { subdomain: auth, domain: example.com }
+vault_server: { subdomain: vault, domain: example.com }
+
+# for self-signed cert for docker-auth
+country: Country
+state: State
+location: Location
+legal_name: LegalName
+
+# max layer (probably) size in MB we can upload to registry (nginx proxy)
+max_layer_size: 500
+
+# rancher
+rancher_environments:
+  - { name: 'production', params: '&kubernetes=true' }
+  - { name: 'staging', params: '&mesos=true' }
+  - { name: 'test', params: '&swarm=true' }
+  - { name: 'development', params: ''}

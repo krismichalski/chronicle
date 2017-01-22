@@ -1,0 +1,89 @@
+---
+- name: Create necessary directories
+  file: path={{ item }} state=directory
+  with_items:
+    - /home/{{ main_user }}/auth_server/config
+    - /home/{{ main_user }}/auth_server/ssl
+    - /home/{{ main_user }}/certs
+
+- name: Generate self-signed SSL cert for docker-auth
+  command: openssl req -x509 -subj "/C={{ country }}/ST={{ state }}/L={{ location }}/O={{ legal_name }}/CN={{ auth_server.domain }}" -nodes -days 3650 -newkey rsa:2048 -keyout /home/{{ main_user }}/auth_server/ssl/server.key -out /home/{{ main_user }}/auth_server/ssl/server.pem
+  args:
+    creates: /home/{{ main_user }}/auth_server/ssl/server.key
+
+- name: Upload registry auth config
+  template: src=templates/auth_config.j2 dest=/home/{{ main_user }}/auth_server/config/auth_config.yml
+
+- name: Parse master hosts file
+  shell: cat /etc/hosts | grep {{ network_name }} | awk '{ host="- \""$2":"$1"\""; print host }'
+  register: hosts_file
+
+- name: Upload docker-compose.yml
+  template: src=templates/docker-compose.j2 dest=/home/{{ main_user }}/docker-compose.yml
+
+- name: Upload nginx.tmpl
+  copy: src=files/nginx.tmpl dest=/home/{{ main_user }}/nginx.tmpl
+
+- name: Upload vault.conf
+  template: src=templates/vault.j2 dest=/home/{{ main_user }}/vault.conf
+
+- name: Upload registry_env
+  template: src=templates/registry_env.j2 dest=/home/{{ main_user }}/.registry_env
+
+- name: Upload rancher_env
+  template: src=templates/rancher_env.j2 dest=/home/{{ main_user }}/.rancher_env
+
+- name: Upload certs
+  unarchive: src=files/certs.tar.gz dest=/home/{{ main_user }}/certs
+
+- name: Pull images before running
+  become: yes
+  command: docker-compose -f /home/{{ main_user }}/docker-compose.yml pull
+
+- name: Run docker-compose up
+  become: yes
+  docker_service:
+    project_src: /home/{{ main_user }}
+    state: present
+
+- name: Wait for the Rancher server to start
+  become: yes
+  action: command docker logs rancher-server
+  register: rancher_logs
+  until: rancher_logs.stdout.find("Done downloading all drivers") != -1
+  retries: 60
+  delay: 10
+
+- name: Wait for certs
+  become: yes
+  action: shell ls /home/{{ main_user }}/certs | grep {{ item }}.crt || docker-compose -f /home/{{ main_user }}/docker-compose.yml restart
+  register: letsencrypt_logs
+  until: letsencrypt_logs.stdout.find("{{ item }}.crt") != -1
+  retries: 30
+  delay: 120
+  with_items:
+    - "{{ registry_server.subdomain }}.{{ registry_server.domain }}"
+    - "{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}"
+    - "{{ auth_server.subdomain }}.{{ auth_server.domain }}"
+    - "{{ vault_server.subdomain }}.{{ vault_server.domain }}"
+
+- name: Archive certs
+  shell: cd /home/{{ main_user }}/certs && tar -czf /home/{{ main_user }}/certs.tar.gz .
+
+- name: Fetch certs
+  fetch: src=/home/{{ main_user }}/certs.tar.gz dest=files/certs.tar.gz flat=yes
+
+- name: Remove certs archive
+  file: path=/home/{{ main_user }}/certs.tar.gz state=absent
+
+- name: Wait for servers
+  action: uri method=GET status_code={{ item.expected_status }} url="https://{{ item.domain }}"
+  register: uri_logs
+  until: uri_logs | success
+  retries: 60
+  delay: 30
+  with_items:
+    - { domain: "{{ registry_server.subdomain }}.{{ registry_server.domain }}", expected_status: "200" }
+    - { domain: "{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}", expected_status: "200,401" }
+    - { domain: "{{ auth_server.subdomain }}.{{ auth_server.domain }}", expected_status: "200" }
+    - { domain: "{{ vault_server.subdomain }}.{{ vault_server.domain }}", expected_status: "404" }

@@ -1,0 +1,12 @@
+---
+main_user: deploy
+
+# letsencrypt
+letsencrypt_email: deploy@example.com
+
+# cloudflare email for DNS
+cloudflare_email: deploy@example.com
+
+# vpn
+network_name: exapmlemesh
+network_subnet: 192.168.10.0/24

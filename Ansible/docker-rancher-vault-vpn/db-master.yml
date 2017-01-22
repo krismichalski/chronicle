@@ -1,0 +1,75 @@
+---
+- hosts: db-master
+  become: yes
+
+  tasks:
+    - name: Set MySQL root password before installing
+      debconf: name='mariadb-server' question='mariadb-server/root_password' value='{{ vault_mysql_root_password }}' vtype='password'
+
+    - name: Confirm MySQL root password before installing
+      debconf: name='mariadb-server' question='mariadb-server/root_password_again' value='{{ vault_mysql_root_password }}' vtype='password'
+
+    - name: Install MySQL
+      apt: package={{ item }} state=installed force=yes update_cache=yes cache_valid_time=3600
+      when: ansible_os_family == 'Debian'
+      with_items:
+        - mariadb-server
+        - mariadb-client
+        - python-mysqldb
+
+    - name: Start and enable MySQL service
+      service: name=mysql state=started enabled=yes
+
+    - name: Deletes anonymous MySQL server user for localhost
+      mysql_user: user="" state="absent" login_password="{{ vault_mysql_root_password }}" login_user=root
+
+    - name: Secures the MySQL root user
+      mysql_user: user="root" password="{{ vault_mysql_root_password }}" host="{{ item }}" login_password="{{ vault_mysql_root_password }}" login_user=root
+      with_items:
+        - 127.0.0.1
+        - localhost
+        - ::1
+        - "{{ ansible_fqdn }}"
+
+    - name: Removes the MySQL test database
+      mysql_db: db=test state=absent login_password="{{ vault_mysql_root_password }}" login_user=root
+
+    - name: Comment out bind_address line
+      lineinfile: dest=/etc/mysql/mariadb.conf.d/50-server.cnf state=present line="# bind-address" regexp="bind-address"
+
+    - name: Change default encoding to utf8
+      lineinfile: state=present dest={{ item.dest }} line="{{ item.line }}" regexp="{{ item.regexp }}"
+      with_items:
+        - { dest: "/etc/mysql/mariadb.conf.d/50-server.cnf", line: "character-set-server = utf8", regexp: "^character-set-server" }
+        - { dest: "/etc/mysql/mariadb.conf.d/50-server.cnf", line: "collation-server = utf8_general_ci", regexp: "^collation-server" }
+        - { dest: "/etc/mysql/mariadb.conf.d/50-client.cnf", line: "default-character-set = utf8", regexp: "^default-character-set" }
+        - { dest: "/etc/mysql/mariadb.conf.d/50-mysql-clients.cnf", line: "default-character-set = utf8", regexp: "^default-character-set" }
+      register: default_encoding_result
+
+    - name: Restart mysql service
+      service: name=mysql state=restarted
+      when: default_encoding_result | changed
+
+    - name: Create MySQL databases
+      mysql_db:
+        name="{{ item }}"
+        state=present
+        login_password="{{ vault_mysql_root_password }}"
+        login_user=root
+      with_items:
+        - rancher
+        - vault
+
+    - name: Create MySQL users
+      mysql_user:
+        name="{{ item.name }}"
+        state=present
+        login_password="{{ vault_mysql_root_password }}"
+        login_user=root
+        password="{{ item.password }}"
+        host="{{ network_subnet.split('/')[0].split('.')[0:3] | join('.') + '.%' }}"
+        priv="{{ item.name }}.*:ALL"
+      with_items:
+        - { name: "rancher", password: "{{ vault_mysql_rancher_password }}" }
+        - { name: "vault", password: "{{ vault_mysql_vault_password }}" }
+      no_log: True

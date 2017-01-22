@@ -1,0 +1,43 @@
+---
+- name: Check DNS
+  action: command dig {{ item }}
+  register: dig_check
+  with_items:
+    - "{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}"
+    - "{{ registry_server.subdomain }}.{{ registry_server.domain }}"
+    - "{{ auth_server.subdomain }}.{{ auth_server.domain }}"
+    - "{{ vault_server.subdomain }}.{{ vault_server.domain }}"
+
+- name: Assing all domain names to this host IP
+  cloudflare_domain: >
+    state={{ item[0].state }}
+    name={{ item[1].subdomain }}
+    zone={{ item[1].domain }}
+    type=A
+    content="{{ item[0].content }}"
+    email={{ cloudflare_email }}
+    token={{ vault_cloudflare_token }}
+  with_nested:
+    - [
+        { state: 'absent', content: "*" },
+        { state: 'present', content: "{{ ansible_host }}" }
+      ]
+    - [
+        "{{ rancher_master_server }}",
+        "{{ registry_server }}",
+        "{{ auth_server }}",
+        "{{ vault_server }}"
+      ]
+  when: "{{ (dig_check.results | selectattr('item', 'match', item[1].subdomain) | map(attribute='stdout') | list | first).find( ansible_host ) == -1 }}"
+
+- name: Wait for DNS to propagate
+  action: command dig {{ item }}
+  register: dig_logs
+  until: dig_logs.stdout.find( ansible_host ) != -1
+  retries: 60
+  delay: 10
+  with_items:
+    - "{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}"
+    - "{{ registry_server.subdomain }}.{{ registry_server.domain }}"
+    - "{{ auth_server.subdomain }}.{{ auth_server.domain }}"
+    - "{{ vault_server.subdomain }}.{{ vault_server.domain }}"

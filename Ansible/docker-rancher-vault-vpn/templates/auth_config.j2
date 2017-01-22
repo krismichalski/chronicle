@@ -1,0 +1,26 @@
+server:  # Server settings.
+  # Address to listen on.
+  addr: ":5001"
+  # TLS certificate and key.
+  certificate: "/ssl/server.pem"
+  key: "/ssl/server.key"
+
+token:  # Settings for the tokens.
+  issuer: "Auth Service"  # Must match issuer in the Registry config.
+  expiration: 3600
+
+
+# Static user map.
+users:
+  # Password is specified as a BCrypt hash. Use htpasswd -B to generate.
+{% for user in vault_registry_users %}
+  "{{ user.name }}":
+    password: "{{ user.pass }}"
+{% endfor %}
+
+acl:
+{% for user in vault_registry_users %}
+  - match: { account: "{{ user.name }}" {{ user.acl_match_extra }}}
+    actions: ["{{ user.acl_actions }}"]
+{% endfor %}
+  # Access is denied by default.

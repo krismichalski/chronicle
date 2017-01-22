@@ -1,0 +1,9 @@
+REGISTRY_STORAGE=azure
+REGISTRY_STORAGE_AZURE_ACCOUNTNAME=exampledockerregistry
+REGISTRY_STORAGE_AZURE_ACCOUNTKEY={{ vault_registry_storage_azure_accountkey }}
+REGISTRY_STORAGE_AZURE_CONTAINER=registry
+REGISTRY_AUTH=token
+REGISTRY_AUTH_TOKEN_REALM=https://{{ auth_server.subdomain }}.{{ auth_server.domain }}/auth
+REGISTRY_AUTH_TOKEN_SERVICE="Docker registry"
+REGISTRY_AUTH_TOKEN_ISSUER="Auth Service"
+REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/ssl/server.pem

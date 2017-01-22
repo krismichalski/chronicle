@@ -1,0 +1,8 @@
+
+- include: setup.yml
+  when: tinc_state == "present"
+
+- include: cleanup.yml
+  when: tinc_state == "absent"
+
+

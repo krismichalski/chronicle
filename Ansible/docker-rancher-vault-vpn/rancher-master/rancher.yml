@@ -1,0 +1,184 @@
+---
+- name: Check if rancher admin API key is saved in vault
+  become: yes
+  shell: docker exec vault /bin/sh -c "vault auth {{ vault_root_token.stdout }} &> /dev/null; vault list secret/rancher/apikeys/user"
+  register: rancher_admin_api_key_check
+  ignore_errors: True
+  failed_when: "'No value found at' in rancher_admin_api_key_check.stderr"
+
+- name: Get rancher admin API key if exist
+  become: yes
+  command: docker exec vault /bin/sh -c "vault auth {{ vault_root_token.stdout }} &> /dev/null; vault read -format=json secret/rancher/apikeys/user/admin"
+  register: rancher_admin_api_key_json
+  when: "{{ rancher_admin_api_key_check.stdout.find('admin') != -1 }}"
+
+- name: Set rancher admin api keys variables
+  set_fact:
+    rancher_admin_api_key_public: "{{ (rancher_admin_api_key_json.stdout | from_json).data.public }}"
+    rancher_admin_api_key_secret: "{{ (rancher_admin_api_key_json.stdout | from_json).data.secret }}"
+  when: "{{ rancher_admin_api_key_json | changed }}"
+
+- name: Check if rancher API is locked and fail if we don't have keys
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=GET
+    status_code=200,401
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/"
+  register: lock_check
+  failed_when: "lock_check.status != 200 and {{ rancher_admin_api_key_json | changed }}"
+
+- name: Check if admin API key was already created
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=GET
+    status_code=200
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/apikeys"
+    return_content=yes
+  register: apikeys
+
+- name: Create rancher admin API key
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/apikeys"
+    return_content=yes
+  when: "apikeys.json['data'] | length == 0"
+  register: admin_apikey
+
+- name: Get projects
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=GET
+    status_code=200
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects"
+    return_content=yes
+  register: projects
+
+- name:  Delete rancher default environment
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=DELETE
+    status_code=200
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects/{{ item }}?action=delete"
+  with_items: "{{ projects.json['data'] | selectattr('name', 'match', 'Default') | map(attribute='id') | list }}"
+  when: "projects.json['data'] | selectattr('name', 'match', 'Default') | list | length == 1"
+
+- name: Create environments in rancher
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects?name={{ item.name }}{{ item.params }}"
+    return_content=yes
+  with_items: "{{ rancher_environments }}"
+  when: "projects.json['data'] | selectattr('name', 'match', item.name) | list | length == 0"
+
+- name: Get new projects
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=GET
+    status_code=200
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects"
+    return_content=yes
+  register: new_projects
+
+- name: Get user settings
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=GET
+    status_code=200
+    return_content=yes
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/userpreferences"
+  register: rancher_user_settings
+
+- name: Remove setting about default environment
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=DELETE
+    status_code=200
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/userpreferences/{{ rancher_user_settings.json['data'] | selectattr('name', 'match', 'defaultProjectId') | map(attribute='id') | list | first }}?action=remove"
+  when: "{{ rancher_user_settings.json['data'] | selectattr('name', 'match', 'defaultProjectId') | map(attribute='id') | list | length == 1 }}"
+
+- name: Set default environment to production
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/userpreferences?name=defaultProjectId&value={{ new_projects.json['data'] | selectattr('name', 'match', 'production') | map(attribute='id') | list | first }}"
+
+- name: Create api keys for new environments
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects/{{ item }}/apikeys"
+    return_content=yes
+  with_items: "{{ new_projects.json['data'] | difference(projects.json['data']) | map(attribute='id') | list }}"
+  register: env_apikeys
+
+- name: Create registration tokens for new environments
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects/{{ item }}/registrationtokens"
+    return_content=yes
+  with_items: "{{ new_projects.json['data'] | difference(projects.json['data']) | map(attribute='id') | list }}"
+  register: create_env_registrationtokens
+
+- name: Wait 5 seconds
+  shell: sleep 5
+  when: "create_env_registrationtokens.results is defined"
+
+- name: Get new registration tokens
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=GET
+    status_code=200
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/registrationtokens"
+    return_content=yes
+  register: env_registrationtokens
+
+- name: Add our registry to all environments
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects/{{ item }}/registries?serverAddress={{ registry_server.subdomain }}.{{ registry_server.domain }}"
+    return_content=yes
+  with_items: "{{ new_projects.json['data'] | difference(projects.json['data']) | map(attribute='id') | list }}"
+  register: rancher_registries
+
+- name: Add credencials to all rancher registries
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/projects/{{ item.json.accountId }}/registrycredentials?registryId={{ item.json.id }}&email=rancher@{{ rancher_master_server.subdomain }}.{{ rancher_master_server }}&publicValue=rancher&secretValue={{ vault_rancher_hub_password }}"
+  with_items: "{{ rancher_registries.results }}"
+  no_log: True
+
+# THIS MUST BE LAST TASK IN rancher.yml
+- name: Lock Rancher UI with Local Authentication
+  action: uri
+    user={{ rancher_admin_api_key_public | default(omit) }}
+    password={{ rancher_admin_api_key_secret | default(omit) }}
+    method=POST
+    status_code=201
+    url="https://{{ rancher_master_server.subdomain }}.{{ rancher_master_server.domain }}/v1/localAuthConfig?type=localAuthConfig&accessMode=unrestricted&enabled=true&name=Admin&username=admin&password={{ vault_rancher_ui_admin_password }}"

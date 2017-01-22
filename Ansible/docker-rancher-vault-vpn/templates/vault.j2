@@ -1,0 +1,10 @@
+backend "mysql" {
+  username = "vault"
+  password = "{{ vault_mysql_vault_password }}"
+  address = "db-master.{{ network_name }}:3306"
+}
+
+listener "tcp" {
+  address = "0.0.0.0:8200"
+  tls_disable = 1
+}

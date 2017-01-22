@@ -1,0 +1,6 @@
+---
+- include: ssh_config.yml
+- include: provision.yml
+  tags: [provision]
+- include: db-master.yml
+- include: rancher-master.yml

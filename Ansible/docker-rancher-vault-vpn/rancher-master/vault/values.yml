@@ -1,0 +1,17 @@
+---
+- name: Add rancher admin api key
+  command: docker exec vault /bin/sh -c "vault auth {{ vault_root_token.stdout }} &>/dev/null; vault write secret/rancher/apikeys/user/admin public={{ admin_apikey.json.publicValue }} secret={{ admin_apikey.json.secretValue }}"
+  when: "admin_apikey.json is defined"
+
+- name: Add rancher environments API keys to vault
+  command: docker exec vault /bin/sh -c "vault auth {{ vault_root_token.stdout }} &>/dev/null; vault write secret/rancher/apikeys/env/{{ item[0] }} public={{ item[1].json.publicValue }} secret={{ item[1].json.secretValue }}"
+  with_nested:
+    - "{{ new_projects.json['data'] | difference(projects.json['data']) | map(attribute='name') | list }}"
+    - "{{ env_apikeys.results }}"
+
+- name: Add racher environments registration tokens to vault
+  command: docker exec vault /bin/sh -c "vault auth {{ vault_root_token.stdout }} &>/dev/null; vault write secret/rancher/registrationtokens/env/{{ item[0]['id'] }} token={{ item[1]['token'] }}"
+  with_nested:
+    - "{{ new_projects.json['data'] | difference(projects.json['data']) | list }}"
+    - "{{ env_registrationtokens.json['data'] }}"
+  when: "{{ item[0]['id'] == item[1]['accountId'] }}"

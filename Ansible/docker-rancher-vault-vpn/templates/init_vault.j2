@@ -1,0 +1,8 @@
+#!/bin/bash
+echo '---' > /home/{{ main_user }}/.vault_keys.yml && sudo docker exec -it vault vault init -address=https://{{ vault_server.subdomain }}.{{ vault_server.domain }} | head -6 | awk '{ gsub(/ /, "_"); gsub(/:_/, ": "); print "vault_" tolower($0)}' >> /home/{{ main_user }}/.vault_keys.yml
+sleep 10
+sudo docker exec -it vault vault unseal -address=https://{{ vault_server.subdomain }}.{{ vault_server.domain }} $(grep 'key_1:' /home/{{ main_user }}/.vault_keys.yml | awk '{ print $NF }')
+sudo docker exec -it vault vault unseal -address=https://{{ vault_server.subdomain }}.{{ vault_server.domain }} $(grep 'key_2:' /home/{{ main_user }}/.vault_keys.yml | awk '{ print $NF }')
+sudo docker exec -it vault vault unseal -address=https://{{ vault_server.subdomain }}.{{ vault_server.domain }} $(grep 'key_3:' /home/{{ main_user }}/.vault_keys.yml | awk '{ print $NF }')
+echo {{ vault_password_to_vault_keys_file }} | openssl enc -in /home/{{ main_user }}/.vault_keys.yml -aes-256-cbc -pass stdin -out /home/{{ main_user }}/.vault_keys.yml.enc
+rm /home/{{ main_user }}/.vault_keys.yml

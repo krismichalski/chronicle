@@ -1,0 +1,14 @@
+---
+- hosts: all
+
+  tasks:
+
+    - name: Get the username running the deploy
+      local_action: command whoami
+      register: local_username
+
+    - name: Add ssh config
+      ssh_config: host={{ item }} hostname={{ hostvars[item].ansible_host }} user={{ local_username.stdout }} remote_user={{ main_user }} identity_file=~/.ssh/id_rsa port=22 state=present
+      when: item != 'localhost' and item != '127.0.0.1'
+      with_items: '{{ groups.all }}'
+      delegate_to: localhost
