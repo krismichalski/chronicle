@@ -1,10 +1,12 @@
-# Playground
+# Chronicle
 
-Place for keeping my projects created during learning process of various languages and technologies.
+Place where I keep all the projects I wrote in various languages and technologies.
 
-Mostly unfinished and untested.
+Many of them were created for my uni classes.
 
-## Projects list:
+I also keep here a list of my Open Source contributions.
+
+## Projects:
   - ASM:
     - [8051 diode blinking](ASM/8051%20diode%20blinking)
     - [CAPSLOCKOMATOR](ASM/CAPSLOCKOMATOR)
@@ -45,7 +47,7 @@ Mostly unfinished and untested.
       - [Demodulation](Ruby/Basic%20Data%20Transmission/Demodulation)
       - [Hamming Error Correction](Ruby/Basic%20Data%20Transmission/Hamming%20Error%20Correction)
 
-## Open Source contributions
+## Open Source contributions:
   - kontena/kontena
     - [Fix deploying registry on azure](https://github.com/kontena/kontena/pull/863)
   - cerebris/jsonapi-resources
@@ -55,4 +57,6 @@ Mostly unfinished and untested.
 
 ## TODO:
   - Add README to all of the projects
-  - Add NodeJS
+
+## Copyright
+© [Krzysztof Michalski](https://github.com/nooulaif)
