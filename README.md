@@ -1,6 +1,6 @@
 # Chronicle
 
-Place where I keep all the projects I wrote in various languages and technologies.
+Place where I keep all the small projects I wrote in various languages and technologies.
 
 Many of them were created for my uni classes.
 
