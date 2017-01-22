@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user_id: 
+  copy_id: 
+  borrowed_at: 2016-06-11 22:01:41
+  return_planned_at: 2016-06-11 22:01:41
+  returned_at: 2016-06-11 22:01:41
+  reservation: false
+
+two:
+  user_id: 
+  copy_id: 
+  borrowed_at: 2016-06-11 22:01:41
+  return_planned_at: 2016-06-11 22:01:41
+  returned_at: 2016-06-11 22:01:41
+  reservation: false

@@ -1,0 +1,33 @@
+version: '2'
+services:
+  web:
+    build: .
+    environment:
+      DB_ADAPTER: postgresql
+      DB_HOST: db
+      DB_USER: postgres
+      # DB_PASS: $POSTGRES_PASSWORD
+    volumes:
+      - ./:/home/app/webapp
+      - bundle:/home/app/bundle
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    stdin_open: true
+    tty: true
+
+  db:
+    image: postgres:9.5
+    # environment:
+    #   POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+    volumes:
+      - db_data:/var/lib/postgresql
+    logging:
+      driver: none
+
+volumes:
+  bundle:
+    driver: local
+  db_data:
+    driver: local

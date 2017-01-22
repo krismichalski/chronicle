@@ -1,0 +1,35 @@
+<% if current_user && current_user.worker? %>
+<h4>Statystyka biblioteki:</h4>
+<p>Ilość książek w bazie: <%= Book.count %>
+<p>Ogólna liczba wypożyczeń: <%= Borrow.count %></p>
+</p>
+<% elsif current_user && !current_user.admin? %>
+<h4>Moje wypożyczenia:</h4>
+<div class="table-responsive">
+  <table class="table table-striped table-bordered table-hover">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Wypożyczono</th>
+        <th>Do oddania</th>
+        <th></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <%= content_tag_for(:tr, current_user.copies.with_states(:borrowed, :reserved).includes(:book, :borrows).where("borrows.returned_at IS NULL")) do |copy| %>
+        <td><%= copy.book.title %></td>
+        <td><%= copy.state %></td>
+        <td><%= copy.borrows.where(user_id: current_user.id).last.borrowed_at %></td>
+        <td><%= copy.borrows.where(user_id: current_user.id).last.return_planned_at %></td>
+        <td><%= link_to 'Prolongata', prolongate_book_copy_path(copy.book, copy), method: :post if copy.borrowed? %></td>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<% else %>
+<h4>Witamy w systemie obsługi biblioteki, BookStore!</h4>
+<p>Dzięki systemowi BookStore przyspieszymy i ułatwimy wypożyczanie książek naszym klientom. Skrócimy czas wypożyczeń do minimum. Dzięki systemowi nie będzie już problemu z rezerwacją książek, oraz jej prolongatą.</p>
+<% end %>
+

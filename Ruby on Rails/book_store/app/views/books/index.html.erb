@@ -1,0 +1,50 @@
+<div class="page-header">
+  <% if current_user.worker? %>
+    <%= link_to new_book_path, class: 'btn btn-primary' do %>
+      <span class="glyphicon glyphicon-plus"></span>
+      New Book
+    <% end %>
+  <% end %>
+  <h1>Listing books</h1>
+</div>
+
+<%= search_form_for(@q, html: { class: "form-inline", role: "form" }) do |f| %>
+  <div class="form-group">
+    <%= f.search_field :title_or_publisher_or_author_or_genre_cont, class: "form-control" %>
+  </div>
+
+  <%= f.submit class: "btn btn-primary" %>
+  <%= link_to "Reset", request.path, class: "btn btn-danger" %>
+<% end %>
+<br>
+<div class="table-responsive">
+  <table class="table table-striped table-bordered table-hover">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Publisher</th>
+        <th>Author</th>
+        <th>Genre</th>
+        <th></th>
+        <% if current_user.worker? %>
+          <th></th>
+          <th></th>
+        <% end %>
+      </tr>
+    </thead>
+
+    <tbody>
+      <%= content_tag_for(:tr, @books) do |book| %>
+        <td><%= book.title %></td>
+        <td><%= book.publisher %></td>
+        <td><%= book.author %></td>
+        <td><%= book.genre %></td>
+        <td><%= link_to 'Show', book %></td>
+        <% if current_user.worker? %>
+          <td><%= link_to 'Edit', edit_book_path(book) %></td>
+          <td><%= link_to 'Destroy', book, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,103 @@
+<div class="page-header">
+  <%= link_to books_path, class: 'btn btn-default' do %>
+    <span class="glyphicon glyphicon-list-alt"></span>
+    Back
+  <% end %>
+  <% if current_user.worker? %>
+    <%= link_to edit_book_path(@book), class: 'btn btn-primary' do %>
+      <span class="glyphicon glyphicon-pencil"></span>
+      Edit
+    <% end %>
+  <% end %>
+  <h1>Show book</h1>
+</div>
+
+<dl class="dl-horizontal">
+  <dt>Title:</dt>
+  <dd><%= @book.title %></dd>
+
+  <dt>Publisher:</dt>
+  <dd><%= @book.publisher %></dd>
+
+  <dt>Author:</dt>
+  <dd><%= @book.author %></dd>
+
+  <dt>Genre:</dt>
+  <dd><%= @book.genre %></dd>
+
+</dl>
+
+<div class="table-responsive">
+  <table class="table table-striped table-bordered table-hover">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>State</th>
+        <th></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <% index = 0 %>
+      <%= content_tag_for(:tr, @book.copies) do |copy| %>
+        <td><%= index += 1 %></td>
+        <td><%= copy.state %></td>
+        <% if !current_user.worker? %>
+          <td>
+            <%= link_to 'Reserve', change_state_book_copy_path(@book, copy, event: 'reserve'), method: :post if copy.free? || copy.borrowed? %>
+            <%= link_to 'Cancel', change_state_book_copy_path(@book, copy, event: 'cancel'), method: :post if copy.reserved? && current_user.borrows.where(copy_id: copy.id).present? %>
+          </td>
+        <% else %>
+          <td>
+            <%= link_to 'Borrow', '', data: { toggle: 'modal', target: '#myModal', copy_id: copy.id } if copy.free? %>
+            <% copy.state_events.reject { |el| el == :borrow }.each do |event| %>
+              <%= link_to event.to_s.humanize, change_state_book_copy_path(@book, copy, event: event.to_s), method: :post %>
+            <% end %>
+          </td>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<div id="myModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Borrow</h4>
+      </div>
+      <div class="modal-body">
+        <%= form_tag(change_state_book_copy_path(@book, 'copyId', event: 'borrow'), class: "form-horizontal", role: "form") do |f| %>
+          <div class="form-group">
+            <%= label_tag :user_id, nil, class: "col-sm-2 control-label" %>
+            <div class="col-sm-10">
+              <%= text_field_tag :user_id, nil, class: "form-control" %>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+              <%= submit_tag nil, class: "btn btn-primary" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  //triggered when modal is about to be shown
+  $('#myModal').on('show.bs.modal', function(e) {
+      //get data-id attribute of the clicked element
+      var copyId = $(e.relatedTarget).data('copy-id');
+
+      //populate the textbox
+      var action = $(e.currentTarget).find('form').attr('action');
+      action = action.replace('copyId', copyId);
+      $(e.currentTarget).find('form').attr('action', action);
+  });
+</script>
