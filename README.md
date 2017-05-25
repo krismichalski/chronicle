@@ -14,8 +14,6 @@ I also keep here a list of my Open Source contributions.
     - [HelloWorld](Android/HelloWorld)
   - Ansible:
     - [docker-rancher-vault-vpn](Ansible/docker-rancher-vault-vpn)
-  - Bash:
-    - [konachan-random-wallpaper](Bash/konachan-random-wallpaper)
   - C++:
     - [Short Scale Converter](C%2B%2B/Short%20Scale%20Converter)
     - [Simple Database](C%2B%2B/Simple%20Database)
@@ -59,4 +57,4 @@ I also keep here a list of my Open Source contributions.
   - Add README to all of the projects
 
 ## Copyright
-© [Krzysztof Michalski](https://github.com/nooulaif)
+© [Kristopher Michalski](https://github.com/krismichalski)
