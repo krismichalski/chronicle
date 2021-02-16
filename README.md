@@ -52,6 +52,8 @@ I also keep here a list of my Open Source contributions.
     - [Use strings in whitelist to avoid mismatch of object_id](https://github.com/cerebris/jsonapi-resources/pull/797)
   - denysdovhan/spaceship-zsh-theme:
     - [Add vi-mode prompt info](https://github.com/denysdovhan/spaceship-zsh-theme/pull/32)
+  - thoughtbot/shoulda-matchers
+    - [Add support for has_secure_password custom attributes](https://github.com/thoughtbot/shoulda-matchers/pull/1356)
 
 ## TODO:
   - Add README to all of the projects
